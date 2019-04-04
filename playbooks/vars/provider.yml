@@ -1,4 +1,5 @@
 ---
 cloud_name: ovirt
 sec_groups: ''
+state: present
 

@@ -1,0 +1,25 @@
+---
+- name: allow icmp traffic on guests
+  hosts: localhost
+
+  vars_files:
+    - vars/provider.yml
+
+  tasks:
+    - name: create an icmp based sec group
+      os_security_group:
+        cloud: "{{ cloud_name }}"
+        state: "{{ state }}"
+        name: icmp_group
+        description: allows ICMP traffic to the instances using this group
+      register: icmp_rules_holder
+
+    - name: create a rule allowing ICMP traffic
+      os_security_group_rule:
+        cloud: "{{ cloud_name }}"
+        state: present # deleting the group also deletes its rules
+        security_group: "{{ icmp_rules_holder.id }}"
+        protocol: icmp
+      when:
+        - state == "present"
+
