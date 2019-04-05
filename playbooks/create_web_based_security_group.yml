@@ -18,6 +18,8 @@
         cloud: "{{ cloud_name }}"
         state: "{{ state }}"
         name: web_client_group
+      when:
+        - provision_web_client_group
       register: web_client_rules_holder
 
     - name: create a rule opening port 80 
@@ -26,7 +28,7 @@
         state: present
         security_group: "{{ web_server_rules_holder.id }}"
         protocol: tcp
-        remote_group: "{{ client_group_id | default(omit) }}"
+        remote_group: "{{ web_client_rules_holder.id | default(omit) }}"
         port_range_min: 80
         port_range_max: 80
       when:
