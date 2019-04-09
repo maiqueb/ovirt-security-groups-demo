@@ -45,13 +45,13 @@ def get_connection_object(ca_path=None):
 
 
 def list_logical_ports(conn):
-    print 'LOGICAL PORTS:'
+    print('LOGICAL PORTS:')
     for port in conn.network.ports():
         print(entity_to_json(port))
 
 
 def list_security_groups(conn):
-    print 'SECURITY GROUPS:'
+    print('SECURITY GROUPS:')
     for sec_group in conn.network.security_groups():
         print(entity_to_json(sec_group))
 
