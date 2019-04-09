@@ -1,6 +1,11 @@
 # ovirt-security-groups-demo
 Ansible roles and tools to demo networking API security groups in oVirt
 
+## Requirements
+* python
+* ansible
+* openstacksdk
+
 ## Motivation and goals
 Configure fine grained access control to / from the oVirt VMs attached to
 external networks in OVN. Configuring access to those VMs is based on:
