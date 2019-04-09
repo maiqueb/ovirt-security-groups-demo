@@ -67,7 +67,7 @@
           - item.name != 'router_port'
           - token_json.json.access
         with_items:
-        - "{{ openstack_ports }}"
+        - "{{ openstack_ports | default([]) }}"
 
       - name: update the networks port security
         uri:
