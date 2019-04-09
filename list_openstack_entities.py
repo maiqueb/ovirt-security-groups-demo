@@ -32,8 +32,8 @@ DEFAULT_VERIFY=False
 
 def usage():
     print('Usage: {}'.format(sys.argv[0]))
-    print('\t-h, --help\t\tdisplay this help')
-    print('\t-p, --list-logical-ports\t\tlist logical ports')
+    print('\t-h, --help\t\t\tdisplay this help')
+    print('\t-p, --list-logical-ports\tlist logical ports')
     print('\t-s, --list-sec-groups\t\tlist security groups')
 
 
