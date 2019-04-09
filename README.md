@@ -322,3 +322,5 @@ ansible-playbook -i localhost update_ports.yml \
 
 ```
 
+To get the IDs of the ports used by the VMs, and the IDs of the security groups,
+the **list_openstack_entities.py** should be used.
