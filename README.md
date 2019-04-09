@@ -16,7 +16,7 @@ external networks in OVN. Configuring access to those VMs is based on:
 * ether type
 ...
 
-In the networking API, defined in OpenStack by Neutron, there is a tool to
+In the networking API, defined in OpenStack by Neutron, there is an entity to
 enable these use cases, through [security groups](https://developer.openstack.org/api-ref/network/v2/#security-groups-security-groups).
 Using security groups, the user could - for instance - configure ICMP access to
 all the VMs in OVN (or a subset of VMs), limit the traffic in the OVN external
@@ -59,12 +59,27 @@ the UI; its value can be either enabled, disabled, or unspecified - in which
 case, it will default to the configuration value defined in the [port-security-enabled-default](https://github.com/oVirt/ovirt-provider-ovn#section-network)
 attribute.
 
-### Provisioning examples
+### Updating port security on ports or networks
 
-In this section, ansible tasks to configure the port security of networks
-and ports can be found.
+In this section it is shown how to use the sample ansible playbook to configure
+the port security of networks and ports can be found.
 
-TODO
+```bash
+# update the port security of a single port
+ansible-playbook -i localhost update_port_security.yml \
+  --extra-vars="port_security_enabled=true port_uuid=<the_port_uuid>"
+
+# update the port security of a all ports attached to a logical network
+# this playbook also updates the port security of all ports connected
+# to the given network
+ansible-playbook -i localhost update_port_security.yml \
+  --extra-vars="port_security_enabled=true network_uuid=<the_network_uuid>"
+
+# update the port security of all logical ports found in the system
+ansible-playbook -i localhost update_port_security.yml \
+  --extra-vars="port_security_enabled=true"
+
+```
 
 ## Entity objects on the networking API
 The two relevant entities on the networking API are **security groups** and
