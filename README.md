@@ -6,6 +6,14 @@ Ansible roles and tools to demo networking API security groups in oVirt
 * ansible
 * openstacksdk
 
+### Connection to oVirt-engine
+The connection to oVirt engine uses *openstacksdk*. Please refer to its
+documentation on [how to connect](https://docs.openstack.org/openstacksdk/latest/user/guides/connect.html).
+
+The preferred connection mechanism is through the configuration file - e.g.
+[clouds.yml](playbooks/clouds.yml). Update it to reflect your oVirt engine
+configuration.
+
 ## Motivation and goals
 Configure fine grained access control to / from the oVirt VMs attached to
 external networks in OVN. Configuring access to those VMs is based on:
