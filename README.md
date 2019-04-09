@@ -252,6 +252,65 @@ both groups:
 ```bash
 ansible-playbook -i localhost update_ports.yml --extra-vars="sec_groups=<web_security_group_id>,<icmp_security_group_id>"
 ```
+
 ## Semantic based access scenario
-TODO
+The following ASCII diagram portrays an example on how security groups can be
+used to achieve an advanced configuration where some VMs can access a service
+whereas others cannot. It uses the *remote_group_id* security group rule
+parameter to achieve semantic based access to the web service, based on group
+membership.
+
+```
+       +---------------+
+       |      nisu     |
+       |  <dynamic_ip> |
+       |    Default    |
+       +---------------+
+               x
+               x
+               x
+       +---------------+       +---------------+
+       |     net1      |       |   web_client  |
+       | 172.20.50.0/24|-------|  <dynamic_ip> |
+       +---------------+       |   web_clients |
+               |               +---------------+
+       +---------------+
+       |   web_server  |
+       |  <dynamic_ip> |
+       |  web_servers  |
+       +---------------+
+
+```
+
+In the scenario portrayed above, the *web_server* vm belongs to the
+*web_servers* security group. That group features a single rule, that opens
+tcp port 80 traffic to clients **belonging** to the ***web_clients*** security
+group.
+
+The *web_client* vm belongs in turn to the *web_clients* group, which makes it
+able to access the web service located in the *web_server* VM.
+
+The nisu VM belongs to the *Default* security group; as a result, it is not
+able to access to web service located in the *web_server* VM.
+
+To achieve such a scenario, the following playbooks should be executed:
+
+```bash
+# create the web server and web client groups
+ansible-playbook -i localhost create_web_based_security_group.yml \
+  --extra-vars="provision_web_client_group=true"
+
+# attach the Default group to the nisu VM
+ansible-playbook -i localhost update_ports.yml \
+  --extra-vars="port_uuid=<nisu_vm_uuid> sec_groups=Default"
+
+# attach the web_servers group to the web_server VM
+ansible-playbook -i localhost update_ports.yml \
+  --extra-vars="port_uuid=<web_server_vm_id> sec_groups=<web_servers_group_id>"
+
+# attach the web_clients group to the web_client VM
+ansible-playbook -i localhost update_ports.yml \
+  --extra-vars="port_uuid=<web_client_vm_id> sec_groups=<web_clients_group_id>"
+
+```
 
