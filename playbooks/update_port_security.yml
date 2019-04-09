@@ -1,0 +1,91 @@
+---
+- name: Update ports port security
+  hosts: localhost
+
+  vars_files:
+  - vars/provider.yml
+
+  tasks:
+    - block:
+      - name: get ports belonging to a network
+        os_port_facts:
+          cloud: "{{ cloud_name }}"
+          filters:
+            network_id: "{{ network_uuid }}"
+        when:
+          - port_uuid is not defined
+          - network_uuid is defined
+
+      - name: get a specific port
+        os_port_facts:
+          cloud: "{{ cloud_name }}"
+          port: "{{ port_uuid }}"
+        when:
+          - port_uuid is defined
+
+      - name: get all logical ports
+        os_port_facts:
+          cloud: "{{ cloud_name }}"
+        when:
+          - port_uuid is not defined
+          - network_uuid is not defined
+
+    - block:
+      - name: read ovn_central IP address
+        include_vars:
+          file: clouds.yml
+          name: cloud_config
+
+      - name: get a token from keystone
+        uri:
+          url: "{{ cloud_config.clouds.ovirt.auth.auth_url }}/tokens"
+          method: POST
+          body:
+            auth:
+              passwordCredentials:
+                username: "{{ cloud_config.clouds.ovirt.auth.username }}"
+                password: "{{ cloud_config.clouds.ovirt.auth.password }}"
+          body_format: json
+          status_code: 200
+          validate_certs: no
+        register: token_json
+
+    - block:
+      - name: update the ports port security
+        uri:
+          url: "{{ cloud_config.clouds.ovirt.auth.auth_url | regex_replace('35357', '9696') }}/ports/{{ item.id }}"
+          method: PUT
+          body:
+            port:
+              port_security_enabled: "{{ port_security_enabled | bool }}"
+          body_format: json
+          headers:
+            X-Auth-Token: "{{ token_json.json.access.token.id }}"
+          status_code: 200
+          validate_certs: no
+        when:
+          - item.name != 'router_port'
+          - token_json.json.access
+        with_items:
+        - "{{ openstack_ports }}"
+
+      - name: update the networks port security
+        uri:
+          url: "{{ cloud_config.clouds.ovirt.auth.auth_url | regex_replace('35357', '9696') }}/networks/{{ network_uuid }}"
+          method: PUT
+          body:
+            network:
+              port_security_enabled: "{{ port_security_enabled | bool }}"
+          body_format: json
+          headers:
+            X-Auth-Token: "{{ token_json.json.access.token.id }}"
+          status_code: 200
+          validate_certs: no
+        when:
+        - network_uuid is defined
+        - token_json.json.access
+
+      when:
+      - port_security_enabled is defined
+      - token_json.json.access
+
