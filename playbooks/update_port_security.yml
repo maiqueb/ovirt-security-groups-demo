@@ -29,6 +29,8 @@
         when:
           - port_uuid is not defined
           - network_uuid is not defined
+      when:
+        - not (port_uuid is defined and network_uuid is defined)
 
     - block:
       - name: read ovn_central IP address
