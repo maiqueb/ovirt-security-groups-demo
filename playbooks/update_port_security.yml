@@ -32,6 +32,17 @@
       when:
         - not (port_uuid is defined and network_uuid is defined)
 
+    # the following block is a required work around, since the ansible
+    # os_network / os_port modules do not enable port_security_enabled
+    # updates.
+    # Thus, we to use the ovirt-provider-ovn RESTful interface to update
+    # it, which requires us to get the basic auth token from the identity
+    # service.
+    # When ansible-2.8 is released, this can be removed, since the
+    # port_security_enabled attribute was added in that version, check
+    # the following ansible patches:
+    #   - os_network: https://github.com/ansible/ansible/commit/eaf238b033a0504c48440cf85982a2b89851059d
+    #   - os_port: https://github.com/ansible/ansible/commit/bf58f84167e662d5d2397884e7af44ac92a4c9e9
     - block:
       - name: read ovn_central IP address
         include_vars:
@@ -52,6 +63,9 @@
           validate_certs: no
         register: token_json
 
+    # this block uses the 'uri' module until ansible-2.8 is released, since
+    # that will support port_security_enabled updates to both networks and
+    # ports via the os_port / os_network modules.
     - block:
       - name: update the ports port security
         uri:
