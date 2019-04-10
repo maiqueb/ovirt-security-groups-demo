@@ -1,0 +1,107 @@
+---
+- name: Update ports port security
+  hosts: localhost
+
+  vars_files:
+  - vars/provider.yml
+
+  tasks:
+    - block:
+      - name: get ports belonging to a network
+        os_port_facts:
+          cloud: "{{ cloud_name }}"
+          filters:
+            network_id: "{{ network_uuid }}"
+        when:
+          - port_uuid is not defined
+          - network_uuid is defined
+
+      - name: get a specific port
+        os_port_facts:
+          cloud: "{{ cloud_name }}"
+          port: "{{ port_uuid }}"
+        when:
+          - port_uuid is defined
+
+      - name: get all logical ports
+        os_port_facts:
+          cloud: "{{ cloud_name }}"
+        when:
+          - port_uuid is not defined
+          - network_uuid is not defined
+      when:
+        - not (port_uuid is defined and network_uuid is defined)
+
+    # the following block is a required work around, since the ansible
+    # os_network / os_port modules do not enable port_security_enabled
+    # updates.
+    # Thus, we to use the ovirt-provider-ovn RESTful interface to update
+    # it, which requires us to get the basic auth token from the identity
+    # service.
+    # When ansible-2.8 is released, this can be removed, since the
+    # port_security_enabled attribute was added in that version, check
+    # the following ansible patches:
+    #   - os_network: https://github.com/ansible/ansible/commit/eaf238b033a0504c48440cf85982a2b89851059d
+    #   - os_port: https://github.com/ansible/ansible/commit/bf58f84167e662d5d2397884e7af44ac92a4c9e9
+    - block:
+      - name: read ovn_central IP address
+        include_vars:
+          file: clouds.yml
+          name: cloud_config
+
+      - name: get a token from keystone
+        uri:
+          url: "{{ cloud_config.clouds.ovirt.auth.auth_url }}/tokens"
+          method: POST
+          body:
+            auth:
+              passwordCredentials:
+                username: "{{ cloud_config.clouds.ovirt.auth.username }}"
+                password: "{{ cloud_config.clouds.ovirt.auth.password }}"
+          body_format: json
+          status_code: 200
+          validate_certs: no
+        register: token_json
+
+    # this block uses the 'uri' module until ansible-2.8 is released, since
+    # that will support port_security_enabled updates to both networks and
+    # ports via the os_port / os_network modules.
+    - block:
+      - name: update the ports port security
+        uri:
+          url: "{{ cloud_config.clouds.ovirt.auth.auth_url | regex_replace('35357', '9696') }}/ports/{{ item.id }}"
+          method: PUT
+          body:
+            port:
+              port_security_enabled: "{{ port_security_enabled | bool }}"
+          body_format: json
+          headers:
+            X-Auth-Token: "{{ token_json.json.access.token.id }}"
+          status_code: 200
+          validate_certs: no
+        when:
+          - item.name != 'router_port'
+          - token_json.json.access
+        with_items:
+        - "{{ openstack_ports | default([]) }}"
+
+      - name: update the networks port security
+        uri:
+          url: "{{ cloud_config.clouds.ovirt.auth.auth_url | regex_replace('35357', '9696') }}/networks/{{ network_uuid }}"
+          method: PUT
+          body:
+            network:
+              port_security_enabled: "{{ port_security_enabled | bool }}"
+          body_format: json
+          headers:
+            X-Auth-Token: "{{ token_json.json.access.token.id }}"
+          status_code: 200
+          validate_certs: no
+        when:
+        - network_uuid is defined
+        - token_json.json.access
+
+      when:
+      - port_security_enabled is defined
+      - token_json.json.access
+

@@ -1,0 +1,35 @@
+---
+- name: allow web traffic on guests
+  hosts: localhost
+
+  vars_files:
+  - vars/provider.yml
+
+  tasks:
+    - name: create a security group meant for web servers
+      os_security_group:
+        cloud: "{{ cloud_name }}"
+        state: "{{ state  | default('present') }}"
+        name: web_server_group
+      register: web_server_rules_holder
+
+    - name: create a security group meant for web clients
+      os_security_group:
+        cloud: "{{ cloud_name }}"
+        state: "{{ state }}"
+        name: web_client_group
+      when:
+        - provision_web_client_group
+      register: web_client_rules_holder
+
+    - name: create a rule opening port 80 
+      os_security_group_rule:
+        cloud: "{{ cloud_name }}"
+        state: present
+        security_group: "{{ web_server_rules_holder.id }}"
+        protocol: tcp
+        remote_group: "{{ web_client_rules_holder.id | default(omit) }}"
+        port_range_min: 80
+        port_range_max: 80
+      when:
+        - state == 'present'

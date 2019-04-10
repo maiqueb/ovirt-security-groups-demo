@@ -1,0 +1,9 @@
+---
+clouds:
+  ovirt:
+    auth:
+      auth_url: https://engine-test:35357/v2.0
+      password: admin
+      username: admin@internal
+    verify: false
+

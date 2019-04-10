@@ -1,0 +1,43 @@
+---
+- name: Update ports security groups
+  hosts: localhost
+
+  vars_files:
+  - vars/provider.yml
+
+  tasks:
+    - name: get all ports
+      os_port_facts:
+        cloud: "{{ cloud_name }}"
+      when:
+        - port_uuid is not defined
+
+    - name: get a specific port
+      os_port_facts:
+        cloud: "{{ cloud_name }}"
+        port: "{{ port_uuid }}"
+      when:
+        - port_uuid is defined
+
+    - name: update the ports w/ the security groups
+      os_port:
+        cloud: "{{ cloud_name }}"
+        name: "{{ item.id }}"
+        state: present
+        security_groups: "{{ sec_groups.split(',') }}"
+      when:
+        - sec_groups != ''
+      with_items:
+        - "{{ openstack_ports }}"
+
+    - name: clear the security groups from the ports
+      os_port:
+        cloud: "{{ cloud_name }}"
+        name: "{{ item.id }}"
+        state: present
+        no_security_groups: True
+      when:
+        - sec_groups == ''
+      with_items:
+        - "{{ openstack_ports }}"
+

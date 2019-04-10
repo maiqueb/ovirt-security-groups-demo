@@ -1,0 +1,5 @@
+---
+cloud_name: ovirt
+sec_groups: ''
+state: present
+provision_web_client_group: false
