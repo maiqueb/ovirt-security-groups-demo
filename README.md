@@ -6,6 +6,15 @@ Ansible roles and tools to demo networking API security groups in oVirt
 * ansible
 * openstacksdk
 
+To properly install openstacksdk, execute:
+
+```bash
+pip install --user -r requirements.txt
+```
+
+That will install openstacksdk from pip with the correct dependencies, which
+are listed in the [requirements.txt](requirements.txt) file.
+
 ### Connection to oVirt-engine
 The connection to oVirt engine uses *openstacksdk*. Please refer to its
 documentation on [how to connect](https://docs.openstack.org/openstacksdk/latest/user/guides/connect.html).
