@@ -1,28 +1,6 @@
 # ovirt-security-groups-demo
 Ansible roles and tools to demo networking API security groups in oVirt
 
-## Requirements
-* python
-* ansible
-* openstacksdk
-
-To properly install openstacksdk, execute:
-
-```bash
-pip install --user -r requirements.txt
-```
-
-That will install openstacksdk from pip with the correct dependencies, which
-are listed in the [requirements.txt](requirements.txt) file.
-
-### Connection to oVirt-engine
-The connection to oVirt engine uses *openstacksdk*. Please refer to its
-documentation on [how to connect](https://docs.openstack.org/openstacksdk/latest/user/guides/connect.html).
-
-The preferred connection mechanism is through the configuration file - e.g.
-[clouds.yml](playbooks/clouds.yml). Update it to reflect your oVirt engine
-configuration.
-
 ## Motivation and goals
 Configure fine grained access control to / from the oVirt VMs attached to
 external networks in OVN. Configuring access to those VMs is based on:
@@ -52,7 +30,7 @@ security groups, since currently there is no official supported way to do so
 other than through the provider's RESTful interface. Furthermore, some example
 configurations are also provided.
 
-## Tools
+## Provided tools
 This repo adds tools to help manage the security groups in oVirt, since
 currently there is no supported mechanism to handle those.
 
@@ -79,7 +57,31 @@ This repo provides the following tools:
   rules enabling access to a subset of VMs - in this example, though group
   membership.
 
-## Port Security
+## Requirements
+* python
+* ansible
+* openstacksdk
+
+To properly install openstacksdk, execute:
+
+```bash
+pip install --user -r requirements.txt
+```
+
+That will install openstacksdk from pip with the correct dependencies, which
+are listed in the [requirements.txt](requirements.txt) file.
+
+### Connection to oVirt-engine
+The connection to oVirt engine uses [openstacksdk](https://docs.openstack.org/openstacksdk/latest/). Please refer to its
+documentation on [how to connect](https://docs.openstack.org/openstacksdk/latest/user/guides/connect.html).
+
+The preferred connection mechanism is through the configuration file - e.g.
+[clouds.yml](playbooks/clouds.yml). Update it to reflect your oVirt engine
+configuration.
+
+## Security group context
+
+### Port Security
 The networking API port security parameter has two different objectives: it
 limits the MAC addresses that can communicate via the logical port, and
 also indicates that security groups are applied to the logical port.
@@ -103,7 +105,7 @@ the UI; its value can be either enabled, disabled, or unspecified - in which
 case, it will default to the configuration value defined in the [port-security-enabled-default](https://github.com/oVirt/ovirt-provider-ovn#section-network)
 attribute.
 
-### Updating port security on ports or networks
+#### Updating port security on ports or networks
 
 In this section it is shown how to use the sample ansible playbook to configure
 the port security of networks and ports can be found.
@@ -125,7 +127,7 @@ ansible-playbook -i localhost update_port_security.yml \
 
 ```
 
-## Entity objects on the networking API
+### Entity objects on the networking API
 The two relevant entities on the networking API are **security groups** and
 **security group rules**.
 
@@ -150,7 +152,7 @@ Their APIs can be found in:
 * [security groups](https://developer.openstack.org/api-ref/network/v2/#security-groups-security-groups)
 * [security group rules](https://developer.openstack.org/api-ref/network/v2/#security-group-rules-security-group-rules)
 
-## Default group
+### Default group
 The **Default** group's goal is to allow access between all VMs out of the box.
 
 To implement the Default group, four rules are used:
@@ -167,21 +169,22 @@ and traffic allowed into the VM.
 The outgoing traffic - e.g. will also match the egress rules - thus allowing
 the VM to communicate to the outside world.
 
-### Limitations of the Default group
+#### Limitations of the Default group
 The Default group cannot be deleted. Never-the-less, its rules can, and new
 rules can also be added to it.
 
 Remember that if you delete the rules within the Default group, the
 connectivity between the VMs whose ports have it attached **will** break.
 
-## Flat scenario
+## Demo scripts
+### Flat scenario
 
 Using the tools provided in this repo, the Default group concept will be
 showcased, and two different configurations will be shown: the first will
 grant ICMP access amongst a set of VMs, the second will grant access to a web
 server running on one VM. No other kinds of L3 traffic will be allowed.
 
-### ICMP configuration
+#### ICMP configuration
 The following ASCII diagram portrays the goal for this scenario.
 In it, there are 3 VMs, all of them belonging to the *icmp* security group.
 That group features a single security group rule, allowing ingress ICMP
@@ -215,27 +218,24 @@ a subnet on top - through oVirt's UI.
 Then, create 3 VMs attached to that external logical network. This can also
 be achieved through the UI.
 
-To create the icmp security group, you can use the *create_icmp_security_group*
-located in the *playbooks* dir. Make sure your *clouds.yml* file is properly
-configured, since that configures the authentication URL and credentials from
-the ansible client to your oVirt engine.
+To create the icmp security group, you can use the [create_icmp_security_group](playbooks/create_icmp_security_group.yml) playbook. Make sure your *clouds.yml*
+file is properly configured, since it specifies the authentication URL and
+credentials from the ansible client to your oVirt engine.
 
 ```bash
 ansible-playbook -i localhost create_icmp_security_group.yml
-
-# check the existing security groups
-python list_openstack_entities.py -s
 ```
 
-Now that the security group - and rule - are created, the ports group
-membership has to be updated, to feature the ICMP group. To do that, it is
-required to know the security group ID of the icmp group. The python tool can
-be used to get the ID. Afterwards, use the *update_ports* playbook, as shown in
-the example below:
+Now that the security group - and rule - are created, the logical ports group
+membership has to feature the ICMP group. To do that, it is required to know
+the security group ID of the icmp group.
+Afterwards, use the *update_ports* playbook, as shown in the example below:
 
 ```bash
 ansible-playbook -i localhost update_ports.yml --extra-vars="sec_groups=<icmp_security_group_id>"
 ```
+
+**NOTE:** to find the *icmp_security_group_id*, use the [list_openstack_entities.py](list_openstack_entities.py) script - or the OpenStack CLI.
 
 That playbook can update a single port, or all the existing ports. When the
 *port_uuid* variable is not specified, the later occurs - e.g. all ports will
@@ -244,9 +244,7 @@ be members of the *icmp* group.
 Now the user can see that pinging the VMs is possible, but all other types of
 traffic are blocked.
 
-**NOTE:** to find the *icmp_security_group_id*, use the [list_openstack_entities.py](list_openstack_entities.py) script - or the OpenStack CLI.
-
-### Web server configuration
+#### Web server configuration
 In this example, the previous scenario will be reversed - e.g. ICMP traffic
 will be blocked, whereas web traffic will be allowed. The scenario is expressed
 through the following ASCII diagram:
@@ -272,22 +270,20 @@ through the following ASCII diagram:
        +---------------+
 ```
 
-The *create_web_based_security_group* playbook can be used to create a new
+The [create_web_based_security_group](playbooks/create_web_based_security_group.yml) playbook can be used to create a new
 security group, and to provision it with a rule that allows incomming tcp
-traffic to port 80. As previously, use the *list_openstack_entities.py* tool
-to get the security group UD, in order to configure the port's afterwards.
+traffic to port 80. As previously, the logical ports security group membership has to be updated.
 
 ```bash
 # create the web security group
 ansible-playbook -i localhost create_web_based_security_group.yml
 
-# grab it's security group ID using the list_openstack_entities.py tool
-python list_openstack_entities.py -s
-
 # update all the logical ports in the system, making them member of the
 # web group
 ansible-playbook -i localhost update_ports.yml --extra-vars="sec_groups=<web_security_group_id>"
 ```
+
+**NOTE:** to find the *icmp_security_group_id*, use the [list_openstack_entities.py](list_openstack_entities.py) script - or the OpenStack CLI.
 
 Now the user can see that pinging is no longer allowed, but web traffic - e.g.
 through curl - is.
@@ -299,9 +295,7 @@ both groups:
 ansible-playbook -i localhost update_ports.yml --extra-vars="sec_groups=<web_security_group_id>,<icmp_security_group_id>"
 ```
 
-**NOTE:** to find the *icmp_security_group_id*, use the [list_openstack_entities.py](list_openstack_entities.py) script - or the OpenStack CLI.
-
-## Semantic based access scenario
+### Semantic based access scenario
 The following ASCII diagram portrays an example on how security groups can be
 used to achieve an advanced configuration where some VMs can access a service
 whereas others cannot. It uses the *remote_group_id* security group rule
