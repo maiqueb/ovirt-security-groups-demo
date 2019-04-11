@@ -43,6 +43,33 @@ security groups, since currently there is no official supported way to do so
 other than through the provider's RESTful interface. Furthermore, some example
 configurations are also provided.
 
+## Tools
+This repo adds tools to help manage the security groups in oVirt, since
+currently there is no supported mechanism to handle those.
+
+This repo provides the following tools:
+* list_openstack_entities.py: python script that list the logical ports or
+  the security groups found in the system. It is very useful to get the IDs
+  of the desired security group, and/or logical port.
+
+  **NOTE:** the openstack CLI could also be used.
+* update_port_security ansible playbook: this playbook's goal is to update
+  port security for the target entities - whether they are networks, or ports.
+* update_ports ansible playbook: this playbook's goal is to update the port's
+  security group membership. Can clear the security groups of a logical port.
+* create_icmp_security_group: this playbook creates (or deletes) a security
+  group and provisions it with a rule allowing ICMP traffic.
+
+  **NOTE:** this playbook provides an example on how the user can configure
+  rules enabling access based on protocol - e.g. to all VMs.
+* create_web_based_security_group.yml: this playbook creates (or deletes) a
+  group that creates the security groups - and rules - to set up a web based
+  scenario.
+
+  **NOTE:** this playbook is meant as an example of how the user can configure
+  rules enabling access to a subset of VMs - in this example, though group
+  membership.
+
 ## Port Security
 The networking API port security parameter has two different objectives: it
 limits the MAC addresses that can communicate via the logical port, and
@@ -208,6 +235,8 @@ be members of the *icmp* group.
 Now the user can see that pinging the VMs is possible, but all other types of
 traffic are blocked.
 
+**NOTE:** to find the *icmp_security_group_id*, use the [list_openstack_entities.py](list_openstack_entities.py) script - or the OpenStack CLI.
+
 ### Web server configuration
 In this example, the previous scenario will be reversed - e.g. ICMP traffic
 will be blocked, whereas web traffic will be allowed. The scenario is expressed
@@ -260,6 +289,8 @@ both groups:
 ```bash
 ansible-playbook -i localhost update_ports.yml --extra-vars="sec_groups=<web_security_group_id>,<icmp_security_group_id>"
 ```
+
+**NOTE:** to find the *icmp_security_group_id*, use the [list_openstack_entities.py](list_openstack_entities.py) script - or the OpenStack CLI.
 
 ## Semantic based access scenario
 The following ASCII diagram portrays an example on how security groups can be
@@ -322,5 +353,4 @@ ansible-playbook -i localhost update_ports.yml \
 
 ```
 
-To get the IDs of the ports used by the VMs, and the IDs of the security groups,
-the **list_openstack_entities.py** should be used.
+**NOTE:** to find the security group IDs and the port IDs, use the [list_openstack_entities.py](list_openstack_entities.py) script - or the OpenStack CLI.
