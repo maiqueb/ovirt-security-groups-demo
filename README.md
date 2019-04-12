@@ -17,7 +17,7 @@ all the VMs in OVN (or a subset of VMs), limit the traffic in the OVN external
 networks to web traffic (e.g. tcp port 80). More complex scenarios can be
 achieved, for instance, scenarios where some VMs can access a set of services,
 whereas others cannot. This latter scenario can be configured either by IP,
-subnet CIDR, or semantically, through group membership.
+subnet CIDR, or at an higher abstraction level, through group membership.
 
 In oVirt, this networking API concept was implemented in the
 [ovirt-provider-ovn](https://github.com/oVirt/ovirt-provider-ovn) project, and
@@ -295,12 +295,11 @@ both groups:
 ansible-playbook -i localhost update_ports.yml --extra-vars="sec_groups=<web_security_group_id>,<icmp_security_group_id>"
 ```
 
-### Semantic based access scenario
+### Group membership based access scenario
 The following ASCII diagram portrays an example on how security groups can be
 used to achieve an advanced configuration where some VMs can access a service
 whereas others cannot. It uses the *remote_group_id* security group rule
-parameter to achieve semantic based access to the web service, based on group
-membership.
+parameter to provide access to the web service, based on group membership.
 
 ```
        +---------------+
