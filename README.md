@@ -7,9 +7,8 @@ external networks in OVN. Configuring access to those VMs is based on:
 * Ports
 * Protocols
 * Remote IPs
-* group membership
-* ether type
-...
+* Group membership
+* Ether type
 
 In the networking API, defined in OpenStack by Neutron, there is an entity to
 enable these use cases, through [security groups](https://developer.openstack.org/api-ref/network/v2/#security-groups-security-groups).
@@ -20,22 +19,24 @@ achieved, for instance, scenarios where some VMs can access a set of services,
 whereas others cannot. This latter scenario can be configured either by IP,
 subnet CIDR, or semantically, through group membership.
 
-In oVirt, this networking API concept was implement in the
+In oVirt, this networking API concept was implemented in the
 [ovirt-provider-ovn](https://github.com/oVirt/ovirt-provider-ovn) project, and
-a thorough design document for that feature is found in the following
+a thorough design document for that feature is found at the following
 [feature page ](https://ovirt.org/develop/release-management/features/network/networking-api-security-groups.html).
 
 The goal of this repo is to provide tools to help the configuration of
 security groups, since currently there is no official supported way to do so
-other than through the provider's RESTful interface. Furthermore, some example
-configurations are also provided.
+other than through the provider's RESTful interface. Some example
+configurations are also provided in this README.
 
 ## Provided tools
 This repo adds tools to help manage the security groups in oVirt, since
-currently there is no supported mechanism to handle those.
+currently there is no supported mechanism to provision security groups, other
+than the REST API, and ManageIQ. ManageIQ also doesn't fully support security
+groups, since it lacks a way to attach security groups to logical ports.
 
 This repo provides the following tools:
-* list_openstack_entities.py: python script that list the logical ports or
+* list_openstack_entities.py: python script that lists the logical ports or
   the security groups found in the system. It is very useful to get the IDs
   of the desired security group, and/or logical port.
 
@@ -49,13 +50,11 @@ This repo provides the following tools:
 
   **NOTE:** this playbook provides an example on how the user can configure
   rules enabling access based on protocol - e.g. to all VMs.
-* create_web_based_security_group.yml: this playbook creates (or deletes) a
-  group that creates the security groups - and rules - to set up a web based
-  scenario.
+* create_web_based_security_group.yml: this playbook creates (or deletes)
+  security groups - and rules - to set up a web based scenario.
 
-  **NOTE:** this playbook is meant as an example of how the user can configure
-  rules enabling access to a subset of VMs - in this example, though group
-  membership.
+  **NOTE:** this playbook is meant as a configuration example of a scenario
+  enabling access to a subset of VMs, by using group membership.
 
 ## Requirements
 * python
@@ -75,7 +74,7 @@ are listed in the [requirements.txt](requirements.txt) file.
 The connection to oVirt engine uses [openstacksdk](https://docs.openstack.org/openstacksdk/latest/). Please refer to its
 documentation on [how to connect](https://docs.openstack.org/openstacksdk/latest/user/guides/connect.html).
 
-The preferred connection mechanism is through the configuration file - e.g.
+The preferred connection mechanism is through the configuration file - i.e.
 [clouds.yml](playbooks/clouds.yml). Update it to reflect your oVirt engine
 configuration.
 
@@ -85,20 +84,20 @@ configuration.
 The networking API port security parameter has two different objectives: it
 limits the MAC addresses that can communicate via the logical port, and
 also indicates that security groups are applied to the logical port.
-This means that a port with active port security that doesn't belong to any
-security group will be isolated from the network.
+This means that a port with active port security, that doesn't belong to any
+security group, will be isolated from the network.
 
 In oVirt, port security is enabled by default. Despite that, connectivity
 between the VMs is provided out of the box, through the
 [Default group](#default-group) concept.
 
-Port security is an attribute applied to the logical port, **and** also to the
+Port security is an attribute applied to the logical port, as well as to the
 logical network. Port security at network level means that logical ports
 created in that network will inherit the port security value from the
 network - unless specified at port level.
 
 Updates to the port security at network level **will not** cascade down to the
-existing ports - e.g. it will only impact newly created ports.
+existing ports - i.e. it will only impact newly created ports.
 
 In oVirt, the user can set the port security for the logical network through
 the UI; its value can be either enabled, disabled, or unspecified - in which
@@ -108,16 +107,17 @@ attribute.
 #### Updating port security on ports or networks
 
 In this section it is shown how to use the sample ansible playbook to configure
-the port security of networks and ports can be found.
+the port security of networks and ports.
 
 ```bash
 # update the port security of a single port
 ansible-playbook -i localhost update_port_security.yml \
   --extra-vars="port_security_enabled=true port_uuid=<the_port_uuid>"
 
-# update the port security of a all ports attached to a logical network
-# this playbook also updates the port security of all ports connected
-# to the given network
+# update the port security of all ports attached to a logical network
+# and of the network itself.
+# Since updates to the network do not cascade down to the network ports, the
+# playbook filters all ports belonging to the network and updates them.
 ansible-playbook -i localhost update_port_security.yml \
   --extra-vars="port_security_enabled=true network_uuid=<the_network_uuid>"
 
@@ -136,9 +136,9 @@ The intended use case, is for a user to create a group, add a set of rules to
 it, and finally, attach the group to a (set of) port(s).
 
 A security group rule specifies which type of traffic (using L3 / L4 semantics)
-can access - or exit - the VM. They are scoped to the security group - e.g. the
+can access - or exit - the VM. They are scoped to the security group - i.e. the
 rules can have the same data **whenever** they belong to different groups.
-A security group rule can also be applied to either *ingress* - traffic incomming to the VM - or *egress* - traffic outgoing from the VM.
+A security group rule can also be applied to either *ingress* - traffic incoming to the VM - or *egress* - traffic outgoing from the VM.
 
 The *knobs* on a security group are:
 * IP protocol
@@ -163,18 +163,19 @@ To implement the Default group, four rules are used:
 
 When a VM is created, having **port-security-enabled** active, will be
 automatically added to the **Default** group, which will allow all VMs
-to communicate by default - e.g. the **ingress** rules will be matched,
+to communicate by default - i.e. the **ingress** rules will be matched,
 and traffic allowed into the VM.
 
-The outgoing traffic - e.g. will also match the egress rules - thus allowing
-the VM to communicate to the outside world.
+The outgoing traffic, which will match the egress rules, allows the VM to
+communicate to the outside world.
 
 #### Limitations of the Default group
-The Default group cannot be deleted. Never-the-less, its rules can, and new
+The Default group cannot be deleted. Nevertheless, its rules can, and new
 rules can also be added to it.
 
-Remember that if you delete the rules within the Default group, the
-connectivity between the VMs whose ports have it attached **will** break.
+Remember that deleting the rules within the Default group leads to a loss of
+connectivity between the VMs whose logical ports are members of the Default
+group.
 
 ## Demo scripts
 ### Flat scenario
@@ -237,15 +238,15 @@ ansible-playbook -i localhost update_ports.yml --extra-vars="sec_groups=<icmp_se
 
 **NOTE:** to find the *icmp_security_group_id*, use the [list_openstack_entities.py](list_openstack_entities.py) script - or the OpenStack CLI.
 
-That playbook can update a single port, or all the existing ports. When the
-*port_uuid* variable is not specified, the later occurs - e.g. all ports will
-be members of the *icmp* group.
+The playbook mentioned above can update a single port, or all the existing
+ports. When the *port_uuid* variable is not specified, the later occurs - i.e.
+all ports will be members of the *icmp* group.
 
 Now the user can see that pinging the VMs is possible, but all other types of
 traffic are blocked.
 
 #### Web server configuration
-In this example, the previous scenario will be reversed - e.g. ICMP traffic
+In this example, the previous scenario will be reversed - i.e. ICMP traffic
 will be blocked, whereas web traffic will be allowed. The scenario is expressed
 through the following ASCII diagram:
 
@@ -271,22 +272,21 @@ through the following ASCII diagram:
 ```
 
 The [create_web_based_security_group](playbooks/create_web_based_security_group.yml) playbook can be used to create a new
-security group, and to provision it with a rule that allows incomming tcp
+security group, and to provision it with a rule that allows incoming tcp
 traffic to port 80. As previously, the logical ports security group membership has to be updated.
 
 ```bash
 # create the web security group
 ansible-playbook -i localhost create_web_based_security_group.yml
 
-# update all the logical ports in the system, making them member of the
+# update all the logical ports in the system, making them members of the
 # web group
 ansible-playbook -i localhost update_ports.yml --extra-vars="sec_groups=<web_security_group_id>"
 ```
 
 **NOTE:** to find the *icmp_security_group_id*, use the [list_openstack_entities.py](list_openstack_entities.py) script - or the OpenStack CLI.
 
-Now the user can see that pinging is no longer allowed, but web traffic - e.g.
-through curl - is.
+Now the user can see that pinging is no longer allowed, but web traffic is.
 
 Both types of traffic can be enabled, by setting the ports to be members of
 both groups:
