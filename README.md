@@ -43,15 +43,43 @@ This repo provides the following tools:
   **NOTE:** the openstack CLI could also be used.
 * update_port_security ansible playbook: this playbook's goal is to update
   port security for the target entities - whether they are networks, or ports.
+
+  The playbook has the following variables:
+  + **port_uuid:** the uuid of the logical port to update
+    - *Default:* not defined
+  + **network_uuid:** the uuid of the logical port to update
+    - *Default:* not defined
+
 * update_ports ansible playbook: this playbook's goal is to update the port's
   security group membership. Can clear the security groups of a logical port.
+
+  The playbook has the following variables:
+  + **sec_groups:** string of comma separated security group IDs
+    - sec_groups=''
+    - sec_groups='30dc8216-5d0d-11e9-bca3-8c1645516953'
+    - sec_groups='30dc8216-5d0d-11e9-bca3-8c1645516953, 39feb594-5d0d-11e9-b847-8c1645516953'
+    - *Default:* '' (clear the security groups of all ports)
+  + port_uuid: the uuid of the logical port to update
+    - *Default:* not defined (all logical ports are selected)
 * create_icmp_security_group: this playbook creates (or deletes) a security
   group and provisions it with a rule allowing ICMP traffic.
+
+  The playbook has the following variables:
+  + **state:** present | absent. Create or remove the security group.
+    - *Default:* present
 
   **NOTE:** this playbook provides an example on how the user can configure
   rules enabling access based on protocol - e.g. to all VMs.
 * create_web_based_security_group.yml: this playbook creates (or deletes)
   security groups - and rules - to set up a web based scenario.
+
+  The playbook has the following variables:
+  + **state:** present | absent. Create or remove the security group.
+    - *Default:* present
+  + **provision_web_client_group:** true | false. Provision a client security
+    group, and set the *remote_group_id* parameter on the rule of the web
+    server security group.
+    - *Default:* false
 
   **NOTE:** this playbook is meant as a configuration example of a scenario
   enabling access to a subset of VMs, by using group membership.
