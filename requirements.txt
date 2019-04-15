@@ -1,0 +1,3 @@
+decorate==0.0.17
+dogpile.cache==0.6.8
+openstacksdk==0.27.0
