@@ -89,9 +89,16 @@ This repo provides the following tools:
 * ansible
 * openstacksdk
 
-To properly install openstacksdk, execute:
+To properly install openstacksdk on fedora, execute:
 
 ```bash
+pip install --user -r requirements.txt
+```
+
+To properly install openstacksdk on CentOS / RHEL, execute:
+```bash
+yum install -y epel-release
+yum install -y python-pip
 pip install --user -r requirements.txt
 ```
 
